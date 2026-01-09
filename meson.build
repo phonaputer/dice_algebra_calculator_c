@@ -9,13 +9,17 @@ project(
 dependencies = [
 ]
 
+include_dirs = include_directories('include')
+
 sources = [
-  'hello.c',
+  'src/main.c',
+  'src/global_error.c'
 ]
 
 exe = executable(
   'helloworld',
   sources,
+  include_directories: include_dirs,
   dependencies : dependencies,
   install : true,
 )
