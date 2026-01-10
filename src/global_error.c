@@ -15,6 +15,8 @@ void set_error(char newErrorMessage[])
 
     strncpy(errorMessage, newErrorMessage, MAX_ERROR_MESSAGE_SIZE - 1);
     errorMessage[MAX_ERROR_MESSAGE_SIZE - 1] = '\0';
+
+    printf("%s\n", errorMessage);
 }
 
 bool is_there_an_error()

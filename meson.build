@@ -9,18 +9,19 @@ project(
 dependencies = [
 ]
 
-include_dirs = include_directories('include')
+include_dirs = include_directories('.')
 
 sources = [
   'src/main.c',
-  'src/global_error.c'
+  'src/global_error.c',
+  'src/tokenize.c'
 ]
 
 exe = executable(
   'helloworld',
   sources,
-  include_directories: include_dirs,
   dependencies : dependencies,
+  include_directories: include_dirs,
   install : true,
 )
 
