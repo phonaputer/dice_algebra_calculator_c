@@ -9,4 +9,4 @@ bool is_there_an_error();
 
 void clear_error();
 
-void print_error(int outputFd);
+void print_error();

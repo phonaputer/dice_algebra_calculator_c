@@ -29,12 +29,12 @@ void clear_error()
     isThereAnerror = false;
 }
 
-void print_error(int outputFd)
+void print_error()
 {
     if (!isThereAnerror)
     {
         return;
     }
 
-    dprintf(outputFd, "An error occurred: %s\n", errorMessage);
+    printf("An error occurred: %s\n", errorMessage);
 }

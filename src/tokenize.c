@@ -42,8 +42,8 @@ static int str_2_int(char *string)
 typedef struct
 {
     char *string;
-    size_t size;
-    size_t cap;
+    unsigned int size;
+    unsigned int cap;
 } OngoingInt;
 
 static OngoingInt *ogint_new()
@@ -56,9 +56,9 @@ static OngoingInt *ogint_new()
     }
 
     ogint->size = 0;
-    ogint->cap = 5 * sizeof(char);
+    ogint->cap = 5;
 
-    ogint->string = (char *)malloc(ogint->cap);
+    ogint->string = (char *)malloc(ogint->cap * sizeof(char));
     if (ogint->string == NULL)
     {
         set_error("Failed to malloc ogint->string in tokenize.c, ogint_new.");
@@ -78,10 +78,8 @@ static void ogint_append_char(OngoingInt *ogint, char c)
 {
     if (ogint->size + sizeof(char) >= ogint->cap)
     {
-        printf("string: %s, cap: %zu, size: %zu\n", ogint->string, ogint->cap, ogint->size);
-
         ogint->cap *= 2;
-        char *temp = (char *)realloc(ogint->string, ogint->cap);
+        char *temp = (char *)realloc(ogint->string, ogint->cap * sizeof(char));
         if (temp == NULL)
         {
             set_error("Failed to realloc in tokenize.c, ogint_append_char.");
@@ -91,7 +89,7 @@ static void ogint_append_char(OngoingInt *ogint, char c)
     }
 
     ogint->string[ogint->size] = c;
-    ogint->size += sizeof(char);
+    ogint->size++;
 }
 
 static bool ogint_finalize(OngoingInt *ogint, Token *out)
@@ -114,12 +112,12 @@ static bool ogint_finalize(OngoingInt *ogint, Token *out)
     return true;
 }
 
-static void ta_append_token(TokenArray *ta, Token token, OngoingInt *ogint)
+static void ta_append_token(TokenArray *ta, Token token)
 {
     if (ta->size >= ta->cap)
     {
         ta->cap *= 2;
-        Token *temp = (Token *)realloc(ta->tokens, ta->cap);
+        Token *temp = (Token *)realloc(ta->tokens, ta->cap * sizeof(Token));
         if (temp == NULL)
         {
             set_error("Failed to realloc in tokenize.c, ta_append_token.");
@@ -128,11 +126,8 @@ static void ta_append_token(TokenArray *ta, Token token, OngoingInt *ogint)
         ta->tokens = temp;
     }
 
-    printf("ogint cap: %zu\n", ogint->cap);
     ta->tokens[ta->size] = token;
-    printf("ogint cap2: %zu\n", ogint->cap);
-    ta->size += sizeof(Token);
-    printf("ogint cap3: %zu\n", ogint->cap);
+    ta->size++;
 }
 
 static TokenArray *ta_new()
@@ -145,9 +140,9 @@ static TokenArray *ta_new()
     }
 
     ta->size = 0;
-    ta->cap = 5 * sizeof(Token);
+    ta->cap = 5;
 
-    ta->tokens = (Token *)malloc(ta->cap);
+    ta->tokens = (Token *)malloc(ta->cap * sizeof(Token));
     if (ta->tokens == NULL)
     {
         set_error("Failed to malloc ta->tokens in tokenize.c, ta_new.");
@@ -191,6 +186,12 @@ TokenArray *tokenize(char input[])
         case '8':
         case '9':
             ogint_append_char(ogint, inputChar);
+            if (is_there_an_error())
+            {
+                ogint_free(ogint);
+                ta_free(ta);
+                return NULL;
+            }
             break;
         case 'd':
         case 'D':
@@ -251,7 +252,7 @@ TokenArray *tokenize(char input[])
 
         if (haveIntToken)
         {
-            ta_append_token(ta, intToken, ogint);
+            ta_append_token(ta, intToken);
             if (is_there_an_error())
             {
                 ta_free(ta);
@@ -262,11 +263,9 @@ TokenArray *tokenize(char input[])
 
         Token newToken = {.tokenType = tokenType, .integerValue = 0};
 
-        ta_append_token(ta, newToken, ogint); // PROBLEM IS HERE
+        ta_append_token(ta, newToken);
         if (is_there_an_error())
         {
-            printf("Is this happening?\n");
-
             ta_free(ta);
             ogint_free(ogint);
             return NULL;
@@ -286,7 +285,7 @@ TokenArray *tokenize(char input[])
 
         if (haveIntToken)
         {
-            ta_append_token(ta, intToken, ogint);
+            ta_append_token(ta, intToken);
             if (is_there_an_error())
             {
                 ta_free(ta);

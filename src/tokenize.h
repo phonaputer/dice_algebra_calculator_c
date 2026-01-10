@@ -25,8 +25,8 @@ typedef struct
 typedef struct
 {
     Token *tokens;
-    size_t size;
-    size_t cap;
+    unsigned int size;
+    unsigned int cap;
 } TokenArray;
 
 TokenArray *tokenize(char input[]);

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "tokenize.h"
+#include "global_error.h"
 
 int main()
 {
@@ -12,11 +13,16 @@ int main()
 
    printf("You wrote: %s\n", userInput);
 
-   TokenArray *tokens = tokenize(userInput);
-
-   for (size_t i = 0; i < tokens->size; i += sizeof(Token))
+   TokenArray *ta = tokenize(userInput);
+   if (is_there_an_error())
    {
-      switch (tokens->tokens[i].tokenType)
+      print_error();
+      return 1;
+   }
+
+   for (unsigned int i = 0; i < ta->size; i++)
+   {
+      switch (ta->tokens[i].tokenType)
       {
       case TOKEN_TYPE_D:
          printf("d\n");
@@ -46,7 +52,7 @@ int main()
          printf(")\n");
          break;
       case TOKEN_TYPE_INTEGER:
-         printf("int: %d\n", tokens->tokens[i].integerValue);
+         printf("int: %d\n", ta->tokens[i].integerValue);
          break;
       }
    }
