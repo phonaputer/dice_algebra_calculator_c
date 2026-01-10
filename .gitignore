@@ -1,1 +1,5 @@
-.vscode
+# IDE files
+/.vscode
+
+# Cmake output directory
+/out
