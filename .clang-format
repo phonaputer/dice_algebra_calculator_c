@@ -1,0 +1,5 @@
+AlignAfterOpenBracket: BlockIndent
+BreakBeforeBraces: Allman
+BinPackArguments: false
+BinPackParameters: false
+AllowShortIfStatementsOnASingleLine: true
