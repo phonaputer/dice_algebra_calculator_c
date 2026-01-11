@@ -3,7 +3,7 @@ project(dice_algebra_calculator VERSION 0.1.0 LANGUAGES C)
 
 set(SOURCES
     src/main.c
-    src/tokenize.c
+    src/lexer.c
     src/global_error.c
 )
 
