@@ -31,8 +31,8 @@ typedef struct
 } TokenIterator;
 
 // lol @ this abbreviation
-bool tokeit_next(TokenIterator *tokens, Token *out);
+bool tokeit_next(TokenIterator *tokens, Token **out);
 
-bool tokeit_peek(TokenIterator *tokens, Token *out);
+bool tokeit_peek(TokenIterator *tokens, Token **out);
 
 void tokenize(char input[], TokenIterator *out);

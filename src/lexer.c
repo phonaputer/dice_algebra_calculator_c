@@ -169,6 +169,10 @@ void ta_free(TokenArray *ta)
   free(ta);
 }
 
+// tokeit_copy_from_ta creates a new TokenIterator from a TokenArray.
+//
+// This includes transferring ownership of the heap-allocated data within "ta"
+// to "out".
 void tokeit_copy_from_ta(TokenArray *ta, TokenIterator *out)
 {
   if (out == NULL)
@@ -177,31 +181,40 @@ void tokeit_copy_from_ta(TokenArray *ta, TokenIterator *out)
     return;
   }
 
-  out->_curToken = 0;
-  out->_size = ta->size;
-  out->_tokenArray = ta->tokens;
+  *out = (TokenIterator){
+      ._curToken = 0,
+      ._size = ta->size,
+      ._tokenArray = ta->tokens,
+  };
 
   ta->tokens = NULL;
-
-  free(ta);
 }
 
-bool tokeit_next(TokenIterator *tokens, Token *out)
+bool tokeit_next(TokenIterator *tokens, Token **out)
 {
   if (tokens->_curToken >= tokens->_size) return false;
 
-  *out = tokens->_tokenArray[tokens->_curToken];
+  *out = &tokens->_tokenArray[tokens->_curToken];
 
   tokens->_curToken++;
 }
 
-bool tokeit_peek(TokenIterator *tokens, Token *out)
+bool tokeit_peek(TokenIterator *tokens, Token **out)
 {
   int peekIdx = tokens->_curToken + 1;
 
   if (peekIdx >= tokens->_size) return false;
 
-  *out = tokens->_tokenArray[peekIdx];
+  *out = &tokens->_tokenArray[peekIdx];
+}
+
+bool tokeit_free(TokenIterator *tokeit)
+{
+  if (tokeit == NULL) return;
+
+  if (tokeit->_tokenArray != NULL) free(tokeit->_tokenArray);
+
+  free(tokeit);
 }
 
 void ogint_append_token_to_ta(TokenArray *ta, OngoingInt *ogint)
@@ -336,5 +349,6 @@ void tokenize(char input[], TokenIterator *out)
 
   tokeit_copy_from_ta(ta, out);
 
+  ta_free(ta);
   ogint_free(ogint);
 }

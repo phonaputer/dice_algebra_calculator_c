@@ -29,10 +29,10 @@ int main()
 
   int counter = 0;
 
-  Token token;
+  Token *token = NULL;
   while (tokeit_next(&tokeit, &token))
   {
-    switch (token.tokenType)
+    switch (token->tokenType)
     {
     case TOKEN_TYPE_D:
       printf("d\n");
@@ -62,7 +62,7 @@ int main()
       printf(")\n");
       break;
     case TOKEN_TYPE_INTEGER:
-      printf("int: %d\n", token.integerValue);
+      printf("int: %d\n", token->integerValue);
       break;
     }
   }
