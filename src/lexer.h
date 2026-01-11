@@ -28,10 +28,11 @@ typedef struct
   Token *_tokenArray;
   unsigned int _size;
   unsigned int _curToken;
-} Tokens;
+} TokenIterator;
 
-bool tokens_next(Tokens *tokens, Token *out);
+// lol @ this abbreviation
+bool tokeit_next(TokenIterator *tokens, Token *out);
 
-bool tokens_peek(Tokens *tokens, Token *out);
+bool tokeit_peek(TokenIterator *tokens, Token *out);
 
-void tokenize(char input[], Tokens *out);
+void tokenize(char input[], TokenIterator *out);

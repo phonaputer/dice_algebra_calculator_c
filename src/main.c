@@ -11,10 +11,16 @@ int main()
 
   fgets(userInput, sizeof(userInput), stdin);
 
-  printf("You wrote: %s\n", userInput);
+  size_t len = strlen(userInput);
+  if (len > 0 && userInput[len - 1] == '\n')
+  {
+    userInput[len - 1] = '\0';
+  }
 
-  Tokens tokens;
-  tokenize(userInput, &tokens);
+  printf("You wrote: '%s'\n", userInput);
+
+  TokenIterator tokeit;
+  tokenize(userInput, &tokeit);
   if (is_there_an_error())
   {
     print_error();
@@ -24,7 +30,7 @@ int main()
   int counter = 0;
 
   Token token;
-  while (tokens_next(&tokens, &token))
+  while (tokeit_next(&tokeit, &token))
   {
     switch (token.tokenType)
     {

@@ -169,7 +169,7 @@ void ta_free(TokenArray *ta)
   free(ta);
 }
 
-void tokens_copy_from_ta(TokenArray *ta, Tokens *out)
+void tokeit_copy_from_ta(TokenArray *ta, TokenIterator *out)
 {
   if (out == NULL)
   {
@@ -186,7 +186,7 @@ void tokens_copy_from_ta(TokenArray *ta, Tokens *out)
   free(ta);
 }
 
-bool tokens_next(Tokens *tokens, Token *out)
+bool tokeit_next(TokenIterator *tokens, Token *out)
 {
   if (tokens->_curToken >= tokens->_size) return false;
 
@@ -195,7 +195,7 @@ bool tokens_next(Tokens *tokens, Token *out)
   tokens->_curToken++;
 }
 
-bool tokens_peek(Tokens *tokens, Token *out)
+bool tokeit_peek(TokenIterator *tokens, Token *out)
 {
   int peekIdx = tokens->_curToken + 1;
 
@@ -281,6 +281,16 @@ void _tokenize(TokenArray *ta, OngoingInt *ogint, char input[])
       tokenType = TOKEN_TYPE_CLOSE_PAREN;
       finishedToken = true;
       break;
+    case ' ':
+    case '\t':
+    case '\n':
+      // whitespace is ignored.
+      break;
+    default:
+      char errMsg[100];
+      sprintf(errMsg, "Unexpected character in input: '%c'", inputChar);
+      set_error(errMsg);
+      return;
     }
 
     if (!finishedToken) continue;
@@ -304,7 +314,7 @@ void _tokenize(TokenArray *ta, OngoingInt *ogint, char input[])
   ogint_append_token_to_ta(ta, ogint);
 }
 
-void tokenize(char input[], Tokens *out)
+void tokenize(char input[], TokenIterator *out)
 {
   TokenArray *ta = ta_new();
   if (is_there_an_error()) return;
@@ -324,7 +334,7 @@ void tokenize(char input[], Tokens *out)
     return;
   }
 
-  tokens_copy_from_ta(ta, out);
+  tokeit_copy_from_ta(ta, out);
 
   ogint_free(ogint);
 }
