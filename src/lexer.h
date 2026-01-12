@@ -1,5 +1,6 @@
 #pragma once
 
+#include "dice_error.h"
 #include <stdbool.h>
 #include <string.h>
 
@@ -37,4 +38,4 @@ bool tokeit_peek(TokenIterator *tokens, Token **out);
 
 void tokeit_free(TokenIterator *tokeit);
 
-TokenIterator *tokenize(char input[]);
+ResultCode tokenize(char input[], TokenIterator *out, DErr **err);

@@ -1,18 +1,23 @@
 #include "lexer.h"
-#include "global_error.h"
+#include "dice_error.h"
 #include <errno.h>
 #include <limits.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-static int str_2_int(char *string)
+static ResultCode str_2_int(char *string, int *out, DErr **err)
 {
   char *end;
   if (string[0] == '\0')
   {
-    set_error("Can't convert empty string to int, lexer.c, str_2_int");
-    return 0;
+    derr_set(
+        err,
+        "Can't convert empty string to int, lexer.c, str_2_int",
+        "An unexpected error has occurred."
+    );
+    return RESULT_CODE_INTERNAL_ERROR;
   }
 
   errno = 0;
@@ -20,23 +25,37 @@ static int str_2_int(char *string)
 
   if (l > INT_MAX || (errno == ERANGE && l == LONG_MAX))
   {
-    set_error("Exceeded int max, lexer.c, str_2_int");
-    return 0;
+    derr_set(
+        err,
+        "Exceeded int max, lexer.c, str_2_int",
+        "An unexpected error has occurred."
+    );
+    return RESULT_CODE_INTERNAL_ERROR;
   }
 
   if (l < INT_MIN || (errno == ERANGE && l == LONG_MIN))
   {
-    set_error("Exceeded int min, lexer.c, str_2_int");
-    return 0;
+    derr_set(
+        err,
+        "Exceeded int min, lexer.c, str_2_int",
+        "An unexpected error has occurred."
+    );
+    return RESULT_CODE_INTERNAL_ERROR;
   }
 
   if (*end != '\0')
   {
-    set_error("Failed to convert full string to long, lexer.c, str_2_int");
-    return 0;
+    derr_set(
+        err,
+        "Failed to convert full string to long, lexer.c, str_2_int",
+        "An unexpected error has occurred."
+    );
+    return RESULT_CODE_INTERNAL_ERROR;
   }
 
-  return l;
+  *out = l;
+
+  return RESULT_CODE_SUCCESS;
 }
 
 typedef struct
@@ -46,26 +65,35 @@ typedef struct
   unsigned int cap;
 } OngoingInt;
 
-static OngoingInt *ogint_new(void)
+static ResultCode ogint_new(OngoingInt **out, DErr **err)
 {
-  OngoingInt *ogint = (OngoingInt *)malloc(sizeof(OngoingInt));
-  if (ogint == NULL)
+  *out = (OngoingInt *)malloc(sizeof(OngoingInt));
+  if (*out == NULL)
   {
-    set_error("Failed to malloc ogint in lexer.c, ogint_new.");
-    return NULL;
+    derr_set(
+        err,
+        "Failed to malloc OngoingInt in lexer.c, ogint_new.",
+        "An unexpected error has occurred."
+    );
+    return RESULT_CODE_INTERNAL_ERROR;
   }
 
-  ogint->size = 0;
-  ogint->cap = 5;
+  (*out)->size = 0;
+  (*out)->cap = 5;
 
-  ogint->string = (char *)malloc(ogint->cap * sizeof(char));
-  if (ogint->string == NULL)
+  (*out)->string = (char *)malloc((*out)->cap * sizeof(char));
+  if ((*out)->string == NULL)
   {
-    set_error("Failed to malloc ogint->string in lexer.c, ogint_new.");
-    return NULL;
+    derr_set(
+        err,
+        "Failed to malloc OngoingInt->string in lexer.c, ogint_new.",
+        "An unexpected error has occurred."
+    );
+    free(*out);
+    return RESULT_CODE_INTERNAL_ERROR;
   }
 
-  return ogint;
+  return RESULT_CODE_SUCCESS;
 }
 
 static void ogint_free(OngoingInt *ogint)
@@ -80,7 +108,7 @@ static void ogint_free(OngoingInt *ogint)
   free(ogint);
 }
 
-static void ogint_append_char(OngoingInt *ogint, char c)
+static ResultCode ogint_append_char(OngoingInt *ogint, char c, DErr **err)
 {
   if (ogint->size >= ogint->cap)
   {
@@ -88,33 +116,52 @@ static void ogint_append_char(OngoingInt *ogint, char c)
     char *temp = (char *)realloc(ogint->string, ogint->cap * sizeof(char));
     if (temp == NULL)
     {
-      set_error("Failed to realloc in lexer.c, ogint_append_char.");
-      return;
+      derr_set(
+          err,
+          "Failed to realloc in lexer.c, ogint_append_char.",
+          "An unexpected error has occurred."
+      );
+      return RESULT_CODE_INTERNAL_ERROR;
     }
+
     ogint->string = temp;
+
+    return RESULT_CODE_SUCCESS;
   }
 
   ogint->string[ogint->size] = c;
   ogint->size++;
+
+  return RESULT_CODE_SUCCESS;
 }
 
-static bool ogint_finalize(OngoingInt *ogint, Token *out)
+static ResultCode ogint_finalize(
+    OngoingInt *ogint, Token *tokenOut, bool *haveTokenOut, DErr **err
+)
 {
-  if (ogint->size < 1) return false;
+  if (ogint->size < 1)
+  {
+    *haveTokenOut = false;
+    return RESULT_CODE_SUCCESS;
+  }
 
-  ogint_append_char(ogint, '\0');
+  ResultCode resultCode = ogint_append_char(ogint, '\0', err);
+  if (resultCode != RESULT_CODE_SUCCESS) return resultCode;
 
-  int theInt = str_2_int(ogint->string);
-  if (is_there_an_error()) return false;
+  int theInt;
+  resultCode = str_2_int(ogint->string, &theInt, err);
+  if (resultCode != RESULT_CODE_SUCCESS) return resultCode;
 
   ogint->size = 0;
 
-  *out = (Token){
+  *tokenOut = (Token){
       .tokenType = TOKEN_TYPE_INTEGER,
       .integerValue = theInt,
   };
 
-  return true;
+  *haveTokenOut = true;
+
+  return RESULT_CODE_SUCCESS;
 }
 
 typedef struct
@@ -124,7 +171,7 @@ typedef struct
   unsigned int cap;
 } TokenArray;
 
-static void ta_append_token(TokenArray *ta, Token token)
+static ResultCode ta_append_token(TokenArray *ta, Token token, DErr **err)
 {
   if (ta->size >= ta->cap)
   {
@@ -132,37 +179,52 @@ static void ta_append_token(TokenArray *ta, Token token)
     Token *temp = (Token *)realloc(ta->tokens, ta->cap * sizeof(Token));
     if (temp == NULL)
     {
-      set_error("Failed to realloc in lexer.c, ta_append_token.");
-      return;
+
+      derr_set(
+          err,
+          "Failed to realloc in lexer.c, ta_append_token.",
+          "An unexpected error has occurred."
+      );
+      return RESULT_CODE_INTERNAL_ERROR;
     }
     ta->tokens = temp;
   }
 
   ta->tokens[ta->size] = token;
   ta->size++;
+
+  return RESULT_CODE_SUCCESS;
 }
 
-static TokenArray *ta_new(void)
+static ResultCode ta_new(TokenArray **out, DErr **err)
 {
-  TokenArray *ta = (TokenArray *)malloc(sizeof(TokenArray));
-  if (ta == NULL)
+  *out = (TokenArray *)malloc(sizeof(TokenArray));
+  if (*out == NULL)
   {
-    set_error("Failed to malloc ta in lexer.c, ta_new.");
-    return NULL;
+    derr_set(
+        err,
+        "Failed to malloc TokenArray in lexer.c, ta_new.",
+        "An unexpected error has occurred."
+    );
+    return RESULT_CODE_INTERNAL_ERROR;
   }
 
-  ta->size = 0;
-  ta->cap = 5;
+  (*out)->size = 0;
+  (*out)->cap = 5;
 
-  ta->tokens = (Token *)malloc(ta->cap * sizeof(Token));
-  if (ta->tokens == NULL)
+  (*out)->tokens = (Token *)malloc((*out)->cap * sizeof(Token));
+  if ((*out)->tokens == NULL)
   {
-    set_error("Failed to malloc ta->tokens in lexer.c, ta_new.");
-    free(ta);
-    return NULL;
+    derr_set(
+        err,
+        "Failed to malloc TokenArray->tokens in lexer.c, ta_new.",
+        "An unexpected error has occurred."
+    );
+    free((*out));
+    return RESULT_CODE_INTERNAL_ERROR;
   }
 
-  return ta;
+  return RESULT_CODE_SUCCESS;
 }
 
 void ta_free(TokenArray *ta)
@@ -181,16 +243,19 @@ void ta_free(TokenArray *ta)
 //
 // This includes transferring ownership of the heap-allocated data within the
 // TokenArray to the resulting TokenIterator.
-TokenIterator *tokeit_copy_from_ta(TokenArray *ta)
+ResultCode tokeit_copy_from_ta(TokenArray *ta, TokenIterator *out, DErr **err)
 {
-  TokenIterator *tokeit = (TokenIterator *)malloc(sizeof(TokenIterator));
-  if (ta == NULL)
+  if (out == NULL)
   {
-    set_error("Failed to malloc tokeit in lexer.c, tokeit_copy_from_ta.");
-    return NULL;
+    derr_set(
+        err,
+        "Output TokenIterator pointer is null in lexer.c, tokeit_copy_from_ta.",
+        "An unexpected error has occurred."
+    );
+    return RESULT_CODE_INTERNAL_ERROR;
   }
 
-  *tokeit = (TokenIterator){
+  *out = (TokenIterator){
       ._curToken = 0,
       ._size = ta->size,
       ._tokenArray = ta->tokens,
@@ -198,7 +263,7 @@ TokenIterator *tokeit_copy_from_ta(TokenArray *ta)
 
   ta->tokens = NULL;
 
-  return tokeit;
+  return RESULT_CODE_SUCCESS;
 }
 
 bool tokeit_next(TokenIterator *tokens, Token **out)
@@ -225,31 +290,32 @@ bool tokeit_peek(TokenIterator *tokens, Token **out)
 
 void tokeit_free(TokenIterator *tokeit)
 {
-  if (tokeit == NULL) return;
-
   if (tokeit->_tokenArray != NULL)
   {
     free(tokeit->_tokenArray);
   }
-
-  free(tokeit);
 }
 
-void ogint_append_token_to_ta(TokenArray *ta, OngoingInt *ogint)
+ResultCode
+ogint_append_token_to_ta(TokenArray *ta, OngoingInt *ogint, DErr **err)
 {
   Token intToken;
-  bool haveIntToken = ogint_finalize(ogint, &intToken);
-  if (is_there_an_error()) return;
+  bool haveIntToken;
+  ResultCode resultCode = ogint_finalize(ogint, &intToken, &haveIntToken, err);
+  if (resultCode != RESULT_CODE_SUCCESS) return resultCode;
 
-  if (!haveIntToken) return;
+  if (!haveIntToken) return RESULT_CODE_SUCCESS;
 
-  // No need to error check here because the caller of ogint_append_token_to_ta
-  // will do that
-  ta_append_token(ta, intToken);
+  resultCode = ta_append_token(ta, intToken, err);
+  if (resultCode != RESULT_CODE_SUCCESS) return resultCode;
+
+  return RESULT_CODE_SUCCESS;
 }
 
-void _tokenize(TokenArray *ta, OngoingInt *ogint, char input[])
+ResultCode
+_tokenize(TokenArray *ta, OngoingInt *ogint, char input[], DErr **err)
 {
+  ResultCode resultCode;
   bool finishedToken = false;
   TokenType tokenType;
 
@@ -270,8 +336,8 @@ void _tokenize(TokenArray *ta, OngoingInt *ogint, char input[])
     case '7':
     case '8':
     case '9':
-      ogint_append_char(ogint, inputChar);
-      if (is_there_an_error()) return;
+      resultCode = ogint_append_char(ogint, inputChar, err);
+      if (resultCode != RESULT_CODE_SUCCESS) return resultCode;
       break;
     case 'd':
     case 'D':
@@ -320,55 +386,69 @@ void _tokenize(TokenArray *ta, OngoingInt *ogint, char input[])
     default:;
       char errMsg[100];
       sprintf(errMsg, "Unexpected character in input: '%c'", inputChar);
-      set_error(errMsg);
-      return;
+      derr_set(err, errMsg, errMsg);
+      return RESULT_CODE_INTERNAL_ERROR;
     }
 
     if (!finishedToken) continue;
 
     finishedToken = false;
 
-    ogint_append_token_to_ta(ta, ogint);
-    if (is_there_an_error()) return;
+    resultCode = ogint_append_token_to_ta(ta, ogint, err);
+    if (resultCode != RESULT_CODE_SUCCESS) return resultCode;
 
-    ta_append_token(
+    resultCode = ta_append_token(
         ta,
         (Token){
             .tokenType = tokenType,
             .integerValue = 0,
-        }
+        },
+        err
     );
-    if (is_there_an_error()) return;
+    if (resultCode != RESULT_CODE_SUCCESS) return resultCode;
   }
 
-  // No need to error check here because the caller of _tokenize will do that
-  ogint_append_token_to_ta(ta, ogint);
+  resultCode = ogint_append_token_to_ta(ta, ogint, err);
+  if (resultCode != RESULT_CODE_SUCCESS) return resultCode;
+
+  return RESULT_CODE_SUCCESS;
 }
 
-TokenIterator *tokenize(char input[])
+ResultCode tokenize(char input[], TokenIterator *out, DErr **err)
 {
-  TokenArray *ta = ta_new();
-  if (is_there_an_error()) return NULL;
-
-  OngoingInt *ogint = ogint_new();
-  if (is_there_an_error())
+  TokenArray *ta;
+  ResultCode resultCode = ta_new(&ta, err);
+  if (resultCode != RESULT_CODE_SUCCESS)
   {
-    ta_free(ta);
-    return NULL;
+    return resultCode;
   }
 
-  _tokenize(ta, ogint, input);
-  if (is_there_an_error())
+  OngoingInt *ogint;
+  resultCode = ogint_new(&ogint, err);
+  if (resultCode != RESULT_CODE_SUCCESS)
+  {
+    ta_free(ta);
+    return resultCode;
+  }
+
+  resultCode = _tokenize(ta, ogint, input, err);
+  if (resultCode != RESULT_CODE_SUCCESS)
   {
     ta_free(ta);
     ogint_free(ogint);
-    return NULL;
+    return resultCode;
   }
 
-  TokenIterator *result = tokeit_copy_from_ta(ta);
+  resultCode = tokeit_copy_from_ta(ta, out, err);
+  if (resultCode != RESULT_CODE_SUCCESS)
+  {
+    ogint_free(ogint);
+    ta_free(ta);
+    return resultCode;
+  }
 
   ogint_free(ogint);
   ta_free(ta);
 
-  return result;
+  return RESULT_CODE_SUCCESS;
 }

@@ -1,12 +1,5 @@
 #include "parser.h"
 
-Tree *parse(TokenIterator *tokeit) { return NULL; }
+ResultCode parse(TokenIterator *tokeit, Tree *out) { return NULL; }
 
-void free_tree(Tree *tree)
-{
-  if (tree == NULL) return;
-
-  if (tree->ruleData != NULL) free(tree->ruleData);
-
-  free(tree);
-}
+void free_tree(Tree *tree) {}

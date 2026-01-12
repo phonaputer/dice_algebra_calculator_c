@@ -1,4 +1,4 @@
-#include "global_error.h"
+#include "dice_error.h"
 #include "lexer.h"
 #include "parser.h"
 #include <stdio.h>
@@ -20,15 +20,20 @@ int main(void)
 
   printf("You wrote: '%s'\n", userInput);
 
-  TokenIterator *tokeit = tokenize(userInput);
-  if (is_there_an_error())
+  DErr *err;
+  TokenIterator tokeit;
+
+  ResultCode resultCode = tokenize(userInput, &tokeit, &err);
+  if (resultCode != RESULT_CODE_SUCCESS)
   {
-    print_error();
-    return 1;
+    printf("An error has occurred\n");
+    printf("DEBUG: %s\nUSER: %s\n", err->debugMessage, err->endUserMessage);
+    derr_free(err);
+    return resultCode;
   }
 
   Token *token = NULL;
-  while (tokeit_next(tokeit, &token))
+  while (tokeit_next(&tokeit, &token))
   {
     switch (token->tokenType)
     {
@@ -65,7 +70,7 @@ int main(void)
     }
   }
 
-  tokeit_free(tokeit);
+  tokeit_free(&tokeit);
 
   return 0;
 }

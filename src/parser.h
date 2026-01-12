@@ -69,6 +69,6 @@ union _RuleData
   IntegerRuleData integer;
 };
 
-Tree *parse(TokenIterator *tokeit);
+ResultCode parse(TokenIterator *tokeit, Tree *out);
 
 void free_tree(Tree *ast);
