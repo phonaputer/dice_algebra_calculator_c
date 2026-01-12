@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lexer.h";
+#include "lexer.h"
 
 typedef enum
 {
@@ -13,33 +13,39 @@ typedef enum
   RULE_INTEGER
 } RuleType;
 
+struct _Tree;
+typedef struct _Tree Tree;
+
+union _RuleData;
+typedef union _RuleData RuleData;
+
 typedef struct
 {
-  AST *l;
-  AST *r;
+  Tree *l;
+  Tree *r;
 } AddMultRuleData;
 
 typedef struct
 {
-  AST *atom;
+  Tree *atom;
 } AtomRuleData;
 
 typedef struct
 {
-  AST *roll;
+  Tree *roll;
 } RollRuleData;
 
 typedef struct
 {
-  AST *die;
-  AST *faces;
-  AST *high;
-  AST *low;
+  Tree *die;
+  Tree *faces;
+  Tree *high;
+  Tree *low;
 } LongRollRuleData;
 
 typedef struct
 {
-  AST *integer;
+  Tree *integer;
 } ShortRollRuleData;
 
 typedef struct
@@ -47,16 +53,22 @@ typedef struct
   int i;
 } IntegerRuleData;
 
-union RuleData
-{
-  data_type member1;
-  data_type member2;
-  // ...
-};
-
-typedef struct
+struct
 {
   RuleType ruleType;
-  Token *token;
-  int integerValue;
-} AST;
+  RuleData *ruleData;
+} _Tree;
+
+union _RuleData
+{
+  AddMultRuleData addMult;
+  AtomRuleData atom;
+  RollRuleData roll;
+  LongRollRuleData longRoll;
+  ShortRollRuleData shortRoll;
+  IntegerRuleData integer;
+};
+
+Tree *parse(TokenIterator *tokeit);
+
+void free_tree(Tree *ast);

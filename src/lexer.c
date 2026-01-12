@@ -46,7 +46,7 @@ typedef struct
   unsigned int cap;
 } OngoingInt;
 
-static OngoingInt *ogint_new()
+static OngoingInt *ogint_new(void)
 {
   OngoingInt *ogint = (OngoingInt *)malloc(sizeof(OngoingInt));
   if (ogint == NULL)
@@ -72,14 +72,17 @@ static void ogint_free(OngoingInt *ogint)
 {
   if (ogint == NULL) return;
 
-  if (ogint->string != NULL) free(ogint->string);
+  if (ogint->string != NULL)
+  {
+    free(ogint->string);
+  }
 
   free(ogint);
 }
 
 static void ogint_append_char(OngoingInt *ogint, char c)
 {
-  if (ogint->size + sizeof(char) >= ogint->cap)
+  if (ogint->size >= ogint->cap)
   {
     ogint->cap *= 2;
     char *temp = (char *)realloc(ogint->string, ogint->cap * sizeof(char));
@@ -98,6 +101,8 @@ static void ogint_append_char(OngoingInt *ogint, char c)
 static bool ogint_finalize(OngoingInt *ogint, Token *out)
 {
   if (ogint->size < 1) return false;
+
+  ogint_append_char(ogint, '\0');
 
   int theInt = str_2_int(ogint->string);
   if (is_there_an_error()) return false;
@@ -137,7 +142,7 @@ static void ta_append_token(TokenArray *ta, Token token)
   ta->size++;
 }
 
-static TokenArray *ta_new()
+static TokenArray *ta_new(void)
 {
   TokenArray *ta = (TokenArray *)malloc(sizeof(TokenArray));
   if (ta == NULL)
@@ -164,30 +169,36 @@ void ta_free(TokenArray *ta)
 {
   if (ta == NULL) return;
 
-  if (ta->tokens != NULL) free(ta->tokens);
+  if (ta->tokens != NULL)
+  {
+    free(ta->tokens);
+  }
 
   free(ta);
 }
 
 // tokeit_copy_from_ta creates a new TokenIterator from a TokenArray.
 //
-// This includes transferring ownership of the heap-allocated data within "ta"
-// to "out".
-void tokeit_copy_from_ta(TokenArray *ta, TokenIterator *out)
+// This includes transferring ownership of the heap-allocated data within the
+// TokenArray to the resulting TokenIterator.
+TokenIterator *tokeit_copy_from_ta(TokenArray *ta)
 {
-  if (out == NULL)
+  TokenIterator *tokeit = (TokenIterator *)malloc(sizeof(TokenIterator));
+  if (ta == NULL)
   {
-    set_error("Output pointer is null in lexer.c, tokens_copy_from_ta");
-    return;
+    set_error("Failed to malloc tokeit in lexer.c, tokeit_copy_from_ta.");
+    return NULL;
   }
 
-  *out = (TokenIterator){
+  *tokeit = (TokenIterator){
       ._curToken = 0,
       ._size = ta->size,
       ._tokenArray = ta->tokens,
   };
 
   ta->tokens = NULL;
+
+  return tokeit;
 }
 
 bool tokeit_next(TokenIterator *tokens, Token **out)
@@ -197,22 +208,29 @@ bool tokeit_next(TokenIterator *tokens, Token **out)
   *out = &tokens->_tokenArray[tokens->_curToken];
 
   tokens->_curToken++;
+
+  return true;
 }
 
 bool tokeit_peek(TokenIterator *tokens, Token **out)
 {
-  int peekIdx = tokens->_curToken + 1;
+  unsigned int peekIdx = tokens->_curToken + 1;
 
   if (peekIdx >= tokens->_size) return false;
 
   *out = &tokens->_tokenArray[peekIdx];
+
+  return true;
 }
 
-bool tokeit_free(TokenIterator *tokeit)
+void tokeit_free(TokenIterator *tokeit)
 {
   if (tokeit == NULL) return;
 
-  if (tokeit->_tokenArray != NULL) free(tokeit->_tokenArray);
+  if (tokeit->_tokenArray != NULL)
+  {
+    free(tokeit->_tokenArray);
+  }
 
   free(tokeit);
 }
@@ -299,7 +317,7 @@ void _tokenize(TokenArray *ta, OngoingInt *ogint, char input[])
     case '\n':
       // whitespace is ignored.
       break;
-    default:
+    default:;
       char errMsg[100];
       sprintf(errMsg, "Unexpected character in input: '%c'", inputChar);
       set_error(errMsg);
@@ -327,16 +345,16 @@ void _tokenize(TokenArray *ta, OngoingInt *ogint, char input[])
   ogint_append_token_to_ta(ta, ogint);
 }
 
-void tokenize(char input[], TokenIterator *out)
+TokenIterator *tokenize(char input[])
 {
   TokenArray *ta = ta_new();
-  if (is_there_an_error()) return;
+  if (is_there_an_error()) return NULL;
 
   OngoingInt *ogint = ogint_new();
   if (is_there_an_error())
   {
     ta_free(ta);
-    return;
+    return NULL;
   }
 
   _tokenize(ta, ogint, input);
@@ -344,11 +362,13 @@ void tokenize(char input[], TokenIterator *out)
   {
     ta_free(ta);
     ogint_free(ogint);
-    return;
+    return NULL;
   }
 
-  tokeit_copy_from_ta(ta, out);
+  TokenIterator *result = tokeit_copy_from_ta(ta);
 
-  ta_free(ta);
   ogint_free(ogint);
+  ta_free(ta);
+
+  return result;
 }

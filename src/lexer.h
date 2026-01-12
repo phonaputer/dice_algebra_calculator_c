@@ -35,4 +35,6 @@ bool tokeit_next(TokenIterator *tokens, Token **out);
 
 bool tokeit_peek(TokenIterator *tokens, Token **out);
 
-void tokenize(char input[], TokenIterator *out);
+void tokeit_free(TokenIterator *tokeit);
+
+TokenIterator *tokenize(char input[]);

@@ -1,9 +1,10 @@
 #include "global_error.h"
 #include "lexer.h"
+#include "parser.h"
 #include <stdio.h>
 #include <string.h>
 
-int main()
+int main(void)
 {
   printf("Please enter a roll: ");
 
@@ -19,18 +20,15 @@ int main()
 
   printf("You wrote: '%s'\n", userInput);
 
-  TokenIterator tokeit;
-  tokenize(userInput, &tokeit);
+  TokenIterator *tokeit = tokenize(userInput);
   if (is_there_an_error())
   {
     print_error();
     return 1;
   }
 
-  int counter = 0;
-
   Token *token = NULL;
-  while (tokeit_next(&tokeit, &token))
+  while (tokeit_next(tokeit, &token))
   {
     switch (token->tokenType)
     {
@@ -66,6 +64,8 @@ int main()
       break;
     }
   }
+
+  tokeit_free(tokeit);
 
   return 0;
 }

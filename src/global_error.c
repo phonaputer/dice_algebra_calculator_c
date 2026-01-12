@@ -17,11 +17,11 @@ void set_error(char newErrorMessage[])
   errorMessage[MAX_ERROR_MESSAGE_SIZE - 1] = '\0';
 }
 
-bool is_there_an_error() { return isThereAnerror; }
+bool is_there_an_error(void) { return isThereAnerror; }
 
-void clear_error() { isThereAnerror = false; }
+void clear_error(void) { isThereAnerror = false; }
 
-void print_error()
+void print_error(void)
 {
   if (!isThereAnerror)
   {
