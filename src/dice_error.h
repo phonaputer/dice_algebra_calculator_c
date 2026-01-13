@@ -1,5 +1,7 @@
 #pragma once
 
+#define UNEXPECTED_ERR_MSG "An unexpected error has occurred."
+
 // Result codes to return from function calls.
 typedef enum
 {
@@ -17,5 +19,8 @@ typedef struct
 } DErr;
 
 void derr_set(DErr **err, char *debugMessage, char *endUserMessage);
+
+ResultCode
+derr_add_trace(ResultCode resultCode, DErr **err, char *debugMessage);
 
 void derr_free(DErr *err);

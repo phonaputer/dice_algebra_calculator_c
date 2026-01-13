@@ -40,6 +40,26 @@ void derr_set(DErr **err, char *debugMessage, char *endUserMessage)
   strncpy((*err)->endUserMessage, endUserMessage, endUserMsgLen);
 }
 
+ResultCode derr_add_trace(ResultCode code, DErr **err, char *debugMessage)
+{
+  if (err == NULL) return code;
+  if ((*err) == NULL) return code;
+  if ((*err)->debugMessage == NULL) return code;
+
+  size_t newSize = strlen((*err)->debugMessage) + strlen(debugMessage) + 1;
+
+  (*err)->debugMessage = realloc((*err)->debugMessage, newSize);
+  if ((*err)->debugMessage == NULL)
+  {
+    perror("Failed to realloc err->debugMessage, dice_error.c, derr_add_trace");
+    return code;
+  }
+
+  strcat((*err)->debugMessage, debugMessage);
+
+  return code;
+}
+
 void derr_free(DErr *err)
 {
   if (err == NULL) return;

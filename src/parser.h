@@ -1,74 +1,66 @@
 #pragma once
 
+#include "dice_error.h"
 #include "lexer.h"
 
 typedef enum
 {
-  RULE_ADD,
-  RULE_MULTIPLY,
-  RULE_ATOM,
-  RULE_ROLL,
-  RULE_LONGROLL,
-  RULE_SHORTROLL,
-  RULE_INTEGER
-} RuleType;
+  NODE_TYPE_MATH,
+  NODE_TYPE_LONGROLL,
+  NODE_TYPE_SHORTROLL,
+  NODE_TYPE_INTEGER
+} NodeType;
+
+typedef enum
+{
+  MATH_OP_ADD,
+  MATH_OP_SUBTRACT,
+  MATH_OP_MULTIPLY,
+  MATH_OP_DIVIDE
+} MathOperation;
 
 struct _Tree;
 typedef struct _Tree Tree;
-
-union _RuleData;
-typedef union _RuleData RuleData;
 
 typedef struct
 {
   Tree *l;
   Tree *r;
-} AddMultRuleData;
+  MathOperation op;
+} MathNodeData;
 
 typedef struct
 {
-  Tree *atom;
-} AtomRuleData;
+  int die;
+  int faces;
+  int high;
+  int low;
+} LongRollNodeData;
 
 typedef struct
 {
-  Tree *roll;
-} RollRuleData;
+  int faces;
+} ShortRollNodeData;
 
 typedef struct
 {
-  Tree *die;
-  Tree *faces;
-  Tree *high;
-  Tree *low;
-} LongRollRuleData;
+  int integer;
+} IntegerNodeData;
 
-typedef struct
+typedef union
 {
-  Tree *integer;
-} ShortRollRuleData;
+  MathNodeData math;
+  LongRollNodeData longRoll;
+  ShortRollNodeData shortRoll;
+  IntegerNodeData integer;
+} NodeData;
 
-typedef struct
+struct _Tree
 {
-  int i;
-} IntegerRuleData;
-
-struct
-{
-  RuleType ruleType;
-  RuleData *ruleData;
-} _Tree;
-
-union _RuleData
-{
-  AddMultRuleData addMult;
-  AtomRuleData atom;
-  RollRuleData roll;
-  LongRollRuleData longRoll;
-  ShortRollRuleData shortRoll;
-  IntegerRuleData integer;
+  NodeType nodeType;
+  NodeData nodeData;
 };
 
-ResultCode parse(TokenIterator *tokeit, Tree *out);
+void tree_free(Tree **tree);
 
-void free_tree(Tree *ast);
+ResultCode parse(TokenIterator *tokeit, Tree **out, DErr **err);

@@ -15,7 +15,7 @@ static ResultCode str_2_int(char *string, int *out, DErr **err)
     derr_set(
         err,
         "Can't convert empty string to int, lexer.c, str_2_int",
-        "An unexpected error has occurred."
+        UNEXPECTED_ERR_MSG
     );
     return RESULT_CODE_INTERNAL_ERROR;
   }
@@ -25,21 +25,13 @@ static ResultCode str_2_int(char *string, int *out, DErr **err)
 
   if (l > INT_MAX || (errno == ERANGE && l == LONG_MAX))
   {
-    derr_set(
-        err,
-        "Exceeded int max, lexer.c, str_2_int",
-        "An unexpected error has occurred."
-    );
+    derr_set(err, "Exceeded int max, lexer.c, str_2_int", UNEXPECTED_ERR_MSG);
     return RESULT_CODE_INTERNAL_ERROR;
   }
 
   if (l < INT_MIN || (errno == ERANGE && l == LONG_MIN))
   {
-    derr_set(
-        err,
-        "Exceeded int min, lexer.c, str_2_int",
-        "An unexpected error has occurred."
-    );
+    derr_set(err, "Exceeded int min, lexer.c, str_2_int", UNEXPECTED_ERR_MSG);
     return RESULT_CODE_INTERNAL_ERROR;
   }
 
@@ -48,7 +40,7 @@ static ResultCode str_2_int(char *string, int *out, DErr **err)
     derr_set(
         err,
         "Failed to convert full string to long, lexer.c, str_2_int",
-        "An unexpected error has occurred."
+        UNEXPECTED_ERR_MSG
     );
     return RESULT_CODE_INTERNAL_ERROR;
   }
@@ -73,7 +65,7 @@ static ResultCode ogint_new(OngoingInt **out, DErr **err)
     derr_set(
         err,
         "Failed to malloc OngoingInt in lexer.c, ogint_new.",
-        "An unexpected error has occurred."
+        UNEXPECTED_ERR_MSG
     );
     return RESULT_CODE_INTERNAL_ERROR;
   }
@@ -87,7 +79,7 @@ static ResultCode ogint_new(OngoingInt **out, DErr **err)
     derr_set(
         err,
         "Failed to malloc OngoingInt->string in lexer.c, ogint_new.",
-        "An unexpected error has occurred."
+        UNEXPECTED_ERR_MSG
     );
     free(*out);
     return RESULT_CODE_INTERNAL_ERROR;
@@ -119,7 +111,7 @@ static ResultCode ogint_append_char(OngoingInt *ogint, char c, DErr **err)
       derr_set(
           err,
           "Failed to realloc in lexer.c, ogint_append_char.",
-          "An unexpected error has occurred."
+          UNEXPECTED_ERR_MSG
       );
       return RESULT_CODE_INTERNAL_ERROR;
     }
@@ -183,7 +175,7 @@ static ResultCode ta_append_token(TokenArray *ta, Token token, DErr **err)
       derr_set(
           err,
           "Failed to realloc in lexer.c, ta_append_token.",
-          "An unexpected error has occurred."
+          UNEXPECTED_ERR_MSG
       );
       return RESULT_CODE_INTERNAL_ERROR;
     }
@@ -204,7 +196,7 @@ static ResultCode ta_new(TokenArray **out, DErr **err)
     derr_set(
         err,
         "Failed to malloc TokenArray in lexer.c, ta_new.",
-        "An unexpected error has occurred."
+        UNEXPECTED_ERR_MSG
     );
     return RESULT_CODE_INTERNAL_ERROR;
   }
@@ -218,7 +210,7 @@ static ResultCode ta_new(TokenArray **out, DErr **err)
     derr_set(
         err,
         "Failed to malloc TokenArray->tokens in lexer.c, ta_new.",
-        "An unexpected error has occurred."
+        UNEXPECTED_ERR_MSG
     );
     free((*out));
     return RESULT_CODE_INTERNAL_ERROR;
@@ -250,7 +242,7 @@ ResultCode tokeit_copy_from_ta(TokenArray *ta, TokenIterator *out, DErr **err)
     derr_set(
         err,
         "Output TokenIterator pointer is null in lexer.c, tokeit_copy_from_ta.",
-        "An unexpected error has occurred."
+        UNEXPECTED_ERR_MSG
     );
     return RESULT_CODE_INTERNAL_ERROR;
   }
@@ -266,26 +258,44 @@ ResultCode tokeit_copy_from_ta(TokenArray *ta, TokenIterator *out, DErr **err)
   return RESULT_CODE_SUCCESS;
 }
 
-bool tokeit_next(TokenIterator *tokens, Token **out)
+bool tokeit_next(TokenIterator *tokeit, Token *out)
 {
-  if (tokens->_curToken >= tokens->_size) return false;
+  if (tokeit->_curToken >= tokeit->_size) return false;
 
-  *out = &tokens->_tokenArray[tokens->_curToken];
+  *out = tokeit->_tokenArray[tokeit->_curToken];
 
-  tokens->_curToken++;
+  tokeit->_curToken++;
 
   return true;
 }
 
-bool tokeit_peek(TokenIterator *tokens, Token **out)
+bool tokeit_peek(TokenIterator *tokeit, Token *out)
 {
-  unsigned int peekIdx = tokens->_curToken + 1;
+  unsigned int peekIdx = tokeit->_curToken;
 
-  if (peekIdx >= tokens->_size) return false;
+  if (peekIdx >= tokeit->_size) return false;
 
-  *out = &tokens->_tokenArray[peekIdx];
+  *out = tokeit->_tokenArray[peekIdx];
 
   return true;
+}
+
+bool tokeit_peek_next(TokenIterator *tokeit, Token *out)
+{
+  unsigned int peekIdx = tokeit->_curToken + 1;
+
+  if (peekIdx >= tokeit->_size) return false;
+
+  *out = tokeit->_tokenArray[peekIdx];
+
+  return true;
+}
+
+void tokeit_rewind(TokenIterator *tokeit) { tokeit->_curToken = 0; }
+
+bool tokeit_has_next(TokenIterator *tokeit)
+{
+  return tokeit->_curToken < tokeit->_size;
 }
 
 void tokeit_free(TokenIterator *tokeit)

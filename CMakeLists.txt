@@ -5,6 +5,7 @@ set(SOURCES
     src/main.c
     src/lexer.c
     src/dice_error.c
+    src/parser.c
 )
 
 add_executable(dice_algebra_calculator ${SOURCES})
