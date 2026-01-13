@@ -40,6 +40,13 @@ void derr_set(DErr **err, char *debugMessage, char *endUserMessage)
   strncpy((*err)->endUserMessage, endUserMessage, endUserMsgLen);
 }
 
+void prepend(char *s, const char *t)
+{
+  size_t len = strlen(t);
+  memmove(s + len, s, strlen(s) + 1);
+  memcpy(s, t, len);
+}
+
 ResultCode derr_add_trace(ResultCode code, DErr **err, char *debugMessage)
 {
   if (err == NULL) return code;
@@ -55,7 +62,7 @@ ResultCode derr_add_trace(ResultCode code, DErr **err, char *debugMessage)
     return code;
   }
 
-  strcat((*err)->debugMessage, debugMessage);
+  prepend((*err)->debugMessage, debugMessage);
 
   return code;
 }

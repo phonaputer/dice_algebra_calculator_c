@@ -79,12 +79,8 @@ ResultCode run(DErr **err)
 
   Tree *tree;
   resultCode = parse(&tokeit, &tree, err);
-
-  printf("Duh parsed\n");
-
   if (resultCode != RESULT_CODE_SUCCESS)
   {
-    tree_free(&tree);
     tokeit_free(&tokeit);
     return resultCode;
   }
