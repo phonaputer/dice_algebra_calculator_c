@@ -17,6 +17,8 @@ ResultCode executeLongRoll(Tree *tree, int *result)
 
 ResultCode executeMath(Tree *tree, int *result)
 {
+    
+
   switch (tree->nodeData.math.op)
   {
   case MATH_OP_ADD:

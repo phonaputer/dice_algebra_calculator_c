@@ -45,10 +45,14 @@ void tree_free(Tree **tree)
   if (theTree->nodeType == NODE_TYPE_MATH)
   {
     tree_free(&theTree->nodeData.math.l);
+    theTree->nodeData.math.l = NULL;
+
     tree_free(&theTree->nodeData.math.r);
+    theTree->nodeData.math.r = NULL;
   }
 
   free(theTree);
+  *tree = NULL;
 }
 
 ResultCode tree_new(Tree **out, DErr **err, NodeType nodeType)
@@ -56,6 +60,7 @@ ResultCode tree_new(Tree **out, DErr **err, NodeType nodeType)
   Tree *newTree = (Tree *)malloc(sizeof(Tree));
   if (newTree == NULL)
   {
+    *out = NULL;
     derr_set(
         err, "Failed to malloc Tree in parser.c, tree_new.", UNEXPECTED_ERR_MSG
     );
@@ -185,18 +190,23 @@ ResultCode parse_longroll(TokenIterator *tokeit, Tree **out, DErr **err)
 
 ResultCode parse_integer(TokenIterator *tokeit, Tree **out, DErr **err)
 {
-  ResultCode resultCode = tree_new(out, err, NODE_TYPE_INTEGER);
+  Tree *result;
+
+  ResultCode resultCode = tree_new(&result, err, NODE_TYPE_INTEGER);
   if (resultCode != RESULT_CODE_SUCCESS)
   {
     return derr_add_trace(resultCode, err, "parse_roll: ");
   }
 
   resultCode =
-      parse_integer_raw(tokeit, &(*out)->nodeData.integer.integer, err);
+      parse_integer_raw(tokeit, &result->nodeData.integer.integer, err);
   if (resultCode != RESULT_CODE_SUCCESS)
   {
+    tree_free(&result);
     return derr_add_trace(resultCode, err, "parse_roll: ");
   }
+
+  *out = result;
 
   return RESULT_CODE_SUCCESS;
 }
@@ -239,13 +249,9 @@ ResultCode parse_atom(TokenIterator *tokeit, Tree **out, DErr **err)
 
 ResultCode parse_mult(TokenIterator *tokeit, Tree **out, DErr **err)
 {
-  ResultCode resultCode = tree_new(out, err, NODE_TYPE_MATH);
-  if (resultCode != RESULT_CODE_SUCCESS)
-  {
-    return derr_add_trace(resultCode, err, "parse_mult: ");
-  }
+  Tree *left = NULL;
 
-  resultCode = parse_atom(tokeit, &(*out)->nodeData.math.l, err);
+  ResultCode resultCode = parse_atom(tokeit, &left, err);
   if (resultCode != RESULT_CODE_SUCCESS)
   {
     return derr_add_trace(resultCode, err, "parse_mult: parse_atom l: ");
@@ -255,77 +261,109 @@ ResultCode parse_mult(TokenIterator *tokeit, Tree **out, DErr **err)
   bool haveToken = tokeit_peek(tokeit, &token);
   if (!haveToken)
   {
+    *out = left;
     return RESULT_CODE_SUCCESS;
   }
 
+  MathOperation op;
   switch (token.tokenType)
   {
   case TOKEN_TYPE_MULTIPLY:
-    (*out)->nodeData.math.op = MATH_OP_MULTIPLY;
+    op = MATH_OP_MULTIPLY;
     break;
   case TOKEN_TYPE_DIVIDE:
-    (*out)->nodeData.math.op = MATH_OP_DIVIDE;
+    op = MATH_OP_DIVIDE;
     break;
   default:
+    *out = left;
     return RESULT_CODE_SUCCESS;
   }
 
   tokeit_next(tokeit, &token); // consume the math op token
 
-  resultCode = parse_atom(tokeit, &(*out)->nodeData.math.r, err);
+  Tree *right = NULL;
+
+  resultCode = parse_atom(tokeit, &right, err);
   if (resultCode != RESULT_CODE_SUCCESS)
   {
+    tree_free(&left);
     return derr_add_trace(resultCode, err, "parse_mult: parse_atom r: ");
   }
+
+  resultCode = tree_new(out, err, NODE_TYPE_MATH);
+  if (resultCode != RESULT_CODE_SUCCESS)
+  {
+    tree_free(&left);
+    tree_free(&right);
+    return derr_add_trace(resultCode, err, "parse_mult: ");
+  }
+
+  (*out)->nodeData.math.op = op;
+  (*out)->nodeData.math.l = left;
+  (*out)->nodeData.math.r = right;
 
   return RESULT_CODE_SUCCESS;
 }
 
 ResultCode parse_add(TokenIterator *tokeit, Tree **out, DErr **err)
 {
-  ResultCode resultCode = tree_new(out, err, NODE_TYPE_MATH);
-  if (resultCode != RESULT_CODE_SUCCESS)
-  {
-    return derr_add_trace(resultCode, err, "parse_add: ");
-  }
+  Tree *left = NULL;
 
-  resultCode = parse_mult(tokeit, &(*out)->nodeData.math.l, err);
+  ResultCode resultCode = parse_atom(tokeit, &left, err);
   if (resultCode != RESULT_CODE_SUCCESS)
   {
-    return derr_add_trace(resultCode, err, "parse_add l: ");
+    return derr_add_trace(resultCode, err, "parse_add: parse_atom l: ");
   }
 
   Token token;
   bool haveToken = tokeit_peek(tokeit, &token);
   if (!haveToken)
   {
+    *out = left;
     return RESULT_CODE_SUCCESS;
   }
 
+  MathOperation op;
   switch (token.tokenType)
   {
   case TOKEN_TYPE_PLUS:
-    (*out)->nodeData.math.op = MATH_OP_ADD;
+    op = MATH_OP_ADD;
     break;
   case TOKEN_TYPE_MINUS:
-    (*out)->nodeData.math.op = MATH_OP_SUBTRACT;
+    op = MATH_OP_SUBTRACT;
     break;
   default:
+    *out = left;
     return RESULT_CODE_SUCCESS;
   }
 
   tokeit_next(tokeit, &token); // consume the math op token
 
-  resultCode = parse_mult(tokeit, &(*out)->nodeData.math.r, err);
+  Tree *right = NULL;
+
+  resultCode = parse_atom(tokeit, &right, err);
   if (resultCode != RESULT_CODE_SUCCESS)
   {
-    return derr_add_trace(resultCode, err, "parse_add r: ");
+    tree_free(&left);
+    return derr_add_trace(resultCode, err, "parse_add: parse_atom r: ");
   }
+
+  resultCode = tree_new(out, err, NODE_TYPE_MATH);
+  if (resultCode != RESULT_CODE_SUCCESS)
+  {
+    tree_free(&left);
+    tree_free(&right);
+    return derr_add_trace(resultCode, err, "parse_add: ");
+  }
+
+  (*out)->nodeData.math.op = op;
+  (*out)->nodeData.math.l = left;
+  (*out)->nodeData.math.r = right;
 
   return RESULT_CODE_SUCCESS;
 }
 
-ResultCode parse_expression(TokenIterator *tokeit, Tree **out, DErr **err)
+ResultCode parse(TokenIterator *tokeit, Tree **out, DErr **err)
 {
   ResultCode resultCode = validate_parenthesis(tokeit, err);
   if (resultCode != RESULT_CODE_SUCCESS)
@@ -341,24 +379,13 @@ ResultCode parse_expression(TokenIterator *tokeit, Tree **out, DErr **err)
 
   if (tokeit_has_next(tokeit))
   {
+    tree_free(out);
     derr_set(
         err,
         "Did not consume all input tokens in parser.c, parse_expression",
         "Input is not valid dice algebra."
     );
     return RESULT_CODE_INTERNAL_ERROR;
-  }
-
-  return RESULT_CODE_SUCCESS;
-}
-
-ResultCode parse(TokenIterator *tokeit, Tree **out, DErr **err)
-{
-  ResultCode resultCode = parse_expression(tokeit, out, err);
-  if (resultCode != RESULT_CODE_SUCCESS)
-  {
-    tree_free(out);
-    return resultCode;
   }
 
   return RESULT_CODE_SUCCESS;
