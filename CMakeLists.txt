@@ -3,8 +3,9 @@ project(dice_algebra_calculator VERSION 0.1.0 LANGUAGES C)
 
 set(SOURCES
     src/main.c
-    src/lexer.c
     src/dice_error.c
+    src/executor.c
+    src/lexer.c
     src/parser.c
 )
 

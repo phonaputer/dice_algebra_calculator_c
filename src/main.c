@@ -1,4 +1,5 @@
 #include "dice_error.h"
+#include "executor.h"
 #include "lexer.h"
 #include "parser.h"
 #include <stdio.h>
@@ -79,14 +80,25 @@ ResultCode run(DErr **err)
 
   Tree *tree;
   resultCode = parse(&tokeit, &tree, err);
+  tokeit_free(&tokeit);
+
   if (resultCode != RESULT_CODE_SUCCESS)
   {
-    tokeit_free(&tokeit);
     return resultCode;
   }
 
-  tokeit_free(&tokeit);
+  int result;
+  resultCode = execute(tree, &result);
   tree_free(&tree);
+
+  if (resultCode != RESULT_CODE_SUCCESS)
+  {
+    printf("it FAILED\n");
+
+    return resultCode;
+  }
+
+  printf("Roll result is: %d\n", result);
 
   return RESULT_CODE_SUCCESS;
 }
