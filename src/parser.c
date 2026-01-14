@@ -309,10 +309,10 @@ ResultCode parse_add(TokenIterator *tokeit, Tree **out, DErr **err)
 {
   Tree *left = NULL;
 
-  ResultCode resultCode = parse_atom(tokeit, &left, err);
+  ResultCode resultCode = parse_mult(tokeit, &left, err);
   if (resultCode != RESULT_CODE_SUCCESS)
   {
-    return derr_add_trace(resultCode, err, "parse_add: parse_atom l: ");
+    return derr_add_trace(resultCode, err, "parse_add l: ");
   }
 
   Token token;
@@ -341,11 +341,11 @@ ResultCode parse_add(TokenIterator *tokeit, Tree **out, DErr **err)
 
   Tree *right = NULL;
 
-  resultCode = parse_atom(tokeit, &right, err);
+  resultCode = parse_mult(tokeit, &right, err);
   if (resultCode != RESULT_CODE_SUCCESS)
   {
     tree_free(&left);
-    return derr_add_trace(resultCode, err, "parse_add: parse_atom r: ");
+    return derr_add_trace(resultCode, err, "parse_add r: ");
   }
 
   resultCode = tree_new(out, err, NODE_TYPE_MATH);
