@@ -23,4 +23,4 @@ void derr_set(DErr **err, char *debugMessage, char *endUserMessage);
 ResultCode
 derr_add_trace(ResultCode resultCode, DErr **err, char *debugMessage);
 
-void derr_free(DErr *err);
+void derr_free(DErr **err);

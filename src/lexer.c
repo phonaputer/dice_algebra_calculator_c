@@ -88,16 +88,22 @@ static ResultCode ogint_new(OngoingInt **out, DErr **err)
   return RESULT_CODE_SUCCESS;
 }
 
-static void ogint_free(OngoingInt *ogint)
+static void ogint_free(OngoingInt **ogintP)
 {
+  if (ogintP == NULL) return;
+
+  OngoingInt *ogint = *ogintP;
+
   if (ogint == NULL) return;
 
   if (ogint->string != NULL)
   {
     free(ogint->string);
+    ogint->string = NULL;
   }
 
   free(ogint);
+  *ogintP = NULL;
 }
 
 static ResultCode ogint_append_char(OngoingInt *ogint, char c, DErr **err)
@@ -219,16 +225,20 @@ static ResultCode ta_new(TokenArray **out, DErr **err)
   return RESULT_CODE_SUCCESS;
 }
 
-void ta_free(TokenArray *ta)
+void ta_free(TokenArray **taP)
 {
-  if (ta == NULL) return;
+  if (taP == NULL) return;
+
+  TokenArray *ta = *taP;
 
   if (ta->tokens != NULL)
   {
     free(ta->tokens);
+    ta->tokens = NULL;
   }
 
   free(ta);
+  *taP = NULL;
 }
 
 // tokeit_copy_from_ta creates a new TokenIterator from a TokenArray.
@@ -437,28 +447,28 @@ ResultCode tokenize(char input[], TokenIterator *out, DErr **err)
   resultCode = ogint_new(&ogint, err);
   if (resultCode != RESULT_CODE_SUCCESS)
   {
-    ta_free(ta);
+    ta_free(&ta);
     return resultCode;
   }
 
   resultCode = _tokenize(ta, ogint, input, err);
   if (resultCode != RESULT_CODE_SUCCESS)
   {
-    ta_free(ta);
-    ogint_free(ogint);
+    ta_free(&ta);
+    ogint_free(&ogint);
     return resultCode;
   }
 
   resultCode = tokeit_copy_from_ta(ta, out, err);
   if (resultCode != RESULT_CODE_SUCCESS)
   {
-    ogint_free(ogint);
-    ta_free(ta);
+    ogint_free(&ogint);
+    ta_free(&ta);
     return resultCode;
   }
 
-  ogint_free(ogint);
-  ta_free(ta);
+  ogint_free(&ogint);
+  ta_free(&ta);
 
   return RESULT_CODE_SUCCESS;
 }

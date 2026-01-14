@@ -105,7 +105,7 @@ int main(void)
         err->debugMessage,
         err->endUserMessage
     );
-    derr_free(err);
+    derr_free(&err);
   }
 
   return resultCode;

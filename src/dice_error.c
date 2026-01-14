@@ -67,12 +67,24 @@ ResultCode derr_add_trace(ResultCode code, DErr **err, char *debugMessage)
   return code;
 }
 
-void derr_free(DErr *err)
+void derr_free(DErr **errP)
 {
-  if (err == NULL) return;
+  if (errP == NULL) return;
 
-  if (err->debugMessage != NULL) free(err->debugMessage);
-  if (err->endUserMessage != NULL) free(err->endUserMessage);
+  DErr *err = *errP;
+
+  if (err->debugMessage != NULL)
+  {
+    free(err->debugMessage);
+    err->debugMessage = NULL;
+  }
+
+  if (err->endUserMessage != NULL)
+  {
+    free(err->endUserMessage);
+    err->endUserMessage = NULL;
+  }
 
   free(err);
+  *errP = NULL;
 }
