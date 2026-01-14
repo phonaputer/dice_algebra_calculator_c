@@ -5,48 +5,6 @@
 #include <stdio.h>
 #include <string.h>
 
-void print_tokens_to_debug(TokenIterator *tokeit)
-{
-  Token token;
-  while (tokeit_next(tokeit, &token))
-  {
-    switch (token.tokenType)
-    {
-    case TOKEN_TYPE_D:
-      printf("d\n");
-      break;
-    case TOKEN_TYPE_H:
-      printf("h\n");
-      break;
-    case TOKEN_TYPE_L:
-      printf("l\n");
-      break;
-    case TOKEN_TYPE_PLUS:
-      printf("+\n");
-      break;
-    case TOKEN_TYPE_MINUS:
-      printf("-\n");
-      break;
-    case TOKEN_TYPE_MULTIPLY:
-      printf("*\n");
-      break;
-    case TOKEN_TYPE_DIVIDE:
-      printf("/\n");
-      break;
-    case TOKEN_TYPE_OPEN_PAREN:
-      printf("(\n");
-      break;
-    case TOKEN_TYPE_CLOSE_PAREN:
-      printf(")\n");
-      break;
-    case TOKEN_TYPE_INTEGER:
-      printf("int: %d\n", token.integerValue);
-      break;
-    }
-  }
-  tokeit_rewind(tokeit);
-}
-
 void get_user_input(char *userInput, size_t size)
 {
   fgets(userInput, size, stdin);
@@ -60,12 +18,10 @@ void get_user_input(char *userInput, size_t size)
 
 ResultCode run(DErr **err)
 {
-  printf("Please enter a roll: ");
+  printf("Please enter a dice algebra expression: ");
 
-  char userInput[50];
+  char userInput[100];
   get_user_input(userInput, sizeof(userInput));
-
-  printf("You wrote: '%s'\n", userInput);
 
   TokenIterator tokeit;
 
@@ -73,10 +29,8 @@ ResultCode run(DErr **err)
   if (resultCode != RESULT_CODE_SUCCESS)
   {
     tokeit_free(&tokeit);
-    return resultCode;
+    return derr_add_trace(resultCode, err, "tokenize: ");
   }
-
-  print_tokens_to_debug(&tokeit);
 
   Tree *tree;
   resultCode = parse(&tokeit, &tree, err);
@@ -84,18 +38,16 @@ ResultCode run(DErr **err)
 
   if (resultCode != RESULT_CODE_SUCCESS)
   {
-    return resultCode;
+    return derr_add_trace(resultCode, err, "parse: ");
   }
 
   int result;
-  resultCode = execute(tree, &result);
+  resultCode = execute(tree, &result, err);
   tree_free(&tree);
 
   if (resultCode != RESULT_CODE_SUCCESS)
   {
-    printf("it FAILED\n");
-
-    return resultCode;
+    return derr_add_trace(resultCode, err, "execute: ");
   }
 
   printf("Roll result is: %d\n", result);
@@ -111,12 +63,12 @@ int main(void)
 
   if (resultCode != RESULT_CODE_SUCCESS)
   {
-    printf("An error has occurred!\n");
-    printf(
-        "DEBUG message: %s\nUSER message: %s\n",
-        err->debugMessage,
-        err->endUserMessage
-    );
+    printf("ERROR: %s\n", err->endUserMessage);
+
+#ifdef DEBUG
+    printf("DEBUG message: %s\n", err->debugMessage);
+#endif
+
     derr_free(&err);
   }
 

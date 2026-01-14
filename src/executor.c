@@ -28,18 +28,18 @@ ResultCode execute_longroll(Tree *tree, int *result)
   return RESULT_CODE_SUCCESS;
 }
 
-ResultCode execute_math(Tree *tree, int *result)
+ResultCode execute_math(Tree *tree, int *result, DErr **err)
 {
 
   int leftResult;
-  ResultCode resultCode = execute(tree->nodeData.math.l, &leftResult);
+  ResultCode resultCode = execute(tree->nodeData.math.l, &leftResult, err);
   if (resultCode != RESULT_CODE_SUCCESS)
   {
     return resultCode;
   }
 
   int rightResult;
-  resultCode = execute(tree->nodeData.math.r, &rightResult);
+  resultCode = execute(tree->nodeData.math.r, &rightResult, err);
   if (resultCode != RESULT_CODE_SUCCESS)
   {
     return resultCode;
@@ -61,7 +61,12 @@ ResultCode execute_math(Tree *tree, int *result)
   case MATH_OP_DIVIDE:
     if (rightResult == 0)
     {
-      mathResult = 0; // TODO return an error here.
+      derr_set(
+          err,
+          "Division by zero in executor.c, execute_math",
+          "Divison by zero is not allowed."
+      );
+      return RESULT_CODE_INTERNAL_ERROR;
     }
     else
     {
@@ -69,6 +74,11 @@ ResultCode execute_math(Tree *tree, int *result)
     }
     break;
   default:
+    derr_set(
+        err,
+        "Unexpected mathematical operation in executor.c, execute_math",
+        UNEXPECTED_ERR_MSG
+    );
     return RESULT_CODE_INTERNAL_ERROR;
   }
 
@@ -77,7 +87,7 @@ ResultCode execute_math(Tree *tree, int *result)
   return RESULT_CODE_SUCCESS;
 }
 
-ResultCode execute_node(Tree *tree, int *result)
+ResultCode execute_node(Tree *tree, int *result, DErr **err)
 {
   switch (tree->nodeType)
   {
@@ -93,16 +103,21 @@ ResultCode execute_node(Tree *tree, int *result)
     return execute_shortroll(tree, result);
 
   case NODE_TYPE_MATH:
-    return execute_math(tree, result);
+    return execute_math(tree, result, err);
 
   default:
+    derr_set(
+        err,
+        "Unexpected node type in executor.c, execute_node",
+        UNEXPECTED_ERR_MSG
+    );
     return RESULT_CODE_INTERNAL_ERROR;
   }
 }
 
-ResultCode execute(Tree *tree, int *result)
+ResultCode execute(Tree *tree, int *result, DErr **err)
 {
   srand(time(NULL));
 
-  return execute_node(tree, result);
+  return execute_node(tree, result, err);
 }
