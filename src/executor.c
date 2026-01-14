@@ -1,16 +1,29 @@
 
 #include "executor.h"
+#include <stdlib.h>
+#include <time.h>
 
 ResultCode execute_shortroll(Tree *tree, int *result)
 {
-  *result = tree->nodeData.shortRoll.faces;
+  int randomNumber = rand();
+
+  *result = randomNumber % tree->nodeData.shortRoll.faces + 1;
 
   return RESULT_CODE_SUCCESS;
 }
 
 ResultCode execute_longroll(Tree *tree, int *result)
 {
-  *result = tree->nodeData.longRoll.faces * tree->nodeData.longRoll.die;
+  int sum = 0;
+
+  for (int i = 0; i < tree->nodeData.longRoll.die; i++)
+  {
+    int randomNumber = rand();
+
+    sum += randomNumber % tree->nodeData.longRoll.faces + 1;
+  }
+
+  *result = sum;
 
   return RESULT_CODE_SUCCESS;
 }
@@ -46,7 +59,14 @@ ResultCode execute_math(Tree *tree, int *result)
     mathResult = leftResult * rightResult;
     break;
   case MATH_OP_DIVIDE:
-    mathResult = leftResult / rightResult;
+    if (rightResult == 0)
+    {
+      mathResult = 0; // TODO return an error here.
+    }
+    else
+    {
+      mathResult = leftResult / rightResult;
+    }
     break;
   default:
     return RESULT_CODE_INTERNAL_ERROR;
@@ -57,7 +77,7 @@ ResultCode execute_math(Tree *tree, int *result)
   return RESULT_CODE_SUCCESS;
 }
 
-ResultCode execute(Tree *tree, int *result)
+ResultCode execute_node(Tree *tree, int *result)
 {
   switch (tree->nodeType)
   {
@@ -78,4 +98,11 @@ ResultCode execute(Tree *tree, int *result)
   default:
     return RESULT_CODE_INTERNAL_ERROR;
   }
+}
+
+ResultCode execute(Tree *tree, int *result)
+{
+  srand(time(NULL));
+
+  return execute_node(tree, result);
 }
