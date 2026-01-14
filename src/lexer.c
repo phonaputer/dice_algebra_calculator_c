@@ -196,8 +196,10 @@ static ResultCode ta_append_token(TokenArray *ta, Token token, DErr **err)
 
 static ResultCode ta_new(TokenArray **out, DErr **err)
 {
-  *out = (TokenArray *)malloc(sizeof(TokenArray));
-  if (*out == NULL)
+  TokenArray *result;
+
+  result = (TokenArray *)malloc(sizeof(TokenArray));
+  if (result == NULL)
   {
     derr_set(
         err,
@@ -207,20 +209,22 @@ static ResultCode ta_new(TokenArray **out, DErr **err)
     return RESULT_CODE_INTERNAL_ERROR;
   }
 
-  (*out)->size = 0;
-  (*out)->cap = 5;
+  result->size = 0;
+  result->cap = 5;
 
-  (*out)->tokens = (Token *)malloc((*out)->cap * sizeof(Token));
-  if ((*out)->tokens == NULL)
+  result->tokens = (Token *)malloc(result->cap * sizeof(Token));
+  if (result->tokens == NULL)
   {
     derr_set(
         err,
         "Failed to malloc TokenArray->tokens in lexer.c, ta_new.",
         UNEXPECTED_ERR_MSG
     );
-    free((*out));
+    free(result);
     return RESULT_CODE_INTERNAL_ERROR;
   }
+
+  *out = result;
 
   return RESULT_CODE_SUCCESS;
 }

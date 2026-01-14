@@ -247,118 +247,149 @@ ResultCode parse_atom(TokenIterator *tokeit, Tree **out, DErr **err)
   return resultCode;
 }
 
+ResultCode
+parse_subsequent_mults(TokenIterator *tokeit, Tree **left, DErr **err)
+{
+  while (true)
+  {
+    Token token;
+    bool haveToken = tokeit_peek(tokeit, &token);
+    if (!haveToken)
+    {
+      return RESULT_CODE_SUCCESS;
+    }
+
+    MathOperation op;
+    switch (token.tokenType)
+    {
+    case TOKEN_TYPE_MULTIPLY:
+      op = MATH_OP_MULTIPLY;
+      break;
+    case TOKEN_TYPE_DIVIDE:
+      op = MATH_OP_DIVIDE;
+      break;
+    default:
+      return RESULT_CODE_SUCCESS;
+    }
+
+    tokeit_next(tokeit, &token); // consume the math op token
+
+    Tree *right = NULL;
+
+    ResultCode resultCode = parse_atom(tokeit, &right, err);
+    if (resultCode != RESULT_CODE_SUCCESS)
+    {
+      return derr_add_trace(resultCode, err, "parse_atom: ");
+    }
+
+    Tree *combined = NULL;
+
+    resultCode = tree_new(&combined, err, NODE_TYPE_MATH);
+    if (resultCode != RESULT_CODE_SUCCESS)
+    {
+      tree_free(&right);
+      return resultCode;
+    }
+
+    combined->nodeData.math.op = op;
+    combined->nodeData.math.l = *left;
+    combined->nodeData.math.r = right;
+
+    *left = combined;
+  }
+}
+
 ResultCode parse_mult(TokenIterator *tokeit, Tree **out, DErr **err)
 {
-  Tree *left = NULL;
+  Tree *result = NULL;
 
-  ResultCode resultCode = parse_atom(tokeit, &left, err);
+  ResultCode resultCode = parse_atom(tokeit, &result, err);
   if (resultCode != RESULT_CODE_SUCCESS)
   {
     return derr_add_trace(resultCode, err, "parse_mult: parse_atom l: ");
   }
 
-  Token token;
-  bool haveToken = tokeit_peek(tokeit, &token);
-  if (!haveToken)
-  {
-    *out = left;
-    return RESULT_CODE_SUCCESS;
-  }
-
-  MathOperation op;
-  switch (token.tokenType)
-  {
-  case TOKEN_TYPE_MULTIPLY:
-    op = MATH_OP_MULTIPLY;
-    break;
-  case TOKEN_TYPE_DIVIDE:
-    op = MATH_OP_DIVIDE;
-    break;
-  default:
-    *out = left;
-    return RESULT_CODE_SUCCESS;
-  }
-
-  tokeit_next(tokeit, &token); // consume the math op token
-
-  Tree *right = NULL;
-
-  resultCode = parse_atom(tokeit, &right, err);
+  resultCode = parse_subsequent_mults(tokeit, &result, err);
   if (resultCode != RESULT_CODE_SUCCESS)
   {
-    tree_free(&left);
-    return derr_add_trace(resultCode, err, "parse_mult: parse_atom r: ");
+    tree_free(&result);
+    return derr_add_trace(resultCode, err, "parse_mult: parse_mults: ");
   }
 
-  resultCode = tree_new(out, err, NODE_TYPE_MATH);
-  if (resultCode != RESULT_CODE_SUCCESS)
-  {
-    tree_free(&left);
-    tree_free(&right);
-    return derr_add_trace(resultCode, err, "parse_mult: ");
-  }
-
-  (*out)->nodeData.math.op = op;
-  (*out)->nodeData.math.l = left;
-  (*out)->nodeData.math.r = right;
+  *out = result;
 
   return RESULT_CODE_SUCCESS;
 }
 
+ResultCode parse_subsequent_adds(TokenIterator *tokeit, Tree **left, DErr **err)
+{
+  while (true)
+  {
+    Token token;
+    bool haveToken = tokeit_peek(tokeit, &token);
+    if (!haveToken)
+    {
+      return RESULT_CODE_SUCCESS;
+    }
+
+    MathOperation op;
+    switch (token.tokenType)
+    {
+    case TOKEN_TYPE_PLUS:
+      op = MATH_OP_ADD;
+      break;
+    case TOKEN_TYPE_MINUS:
+      op = MATH_OP_SUBTRACT;
+      break;
+    default:
+      return RESULT_CODE_SUCCESS;
+    }
+
+    tokeit_next(tokeit, &token); // consume the math op token
+
+    Tree *right = NULL;
+
+    ResultCode resultCode = parse_mult(tokeit, &right, err);
+    if (resultCode != RESULT_CODE_SUCCESS)
+    {
+      return derr_add_trace(resultCode, err, "parse_mult: ");
+    }
+
+    Tree *combined = NULL;
+
+    resultCode = tree_new(&combined, err, NODE_TYPE_MATH);
+    if (resultCode != RESULT_CODE_SUCCESS)
+    {
+      tree_free(&right);
+      return resultCode;
+    }
+
+    combined->nodeData.math.op = op;
+    combined->nodeData.math.l = *left;
+    combined->nodeData.math.r = right;
+
+    *left = combined;
+  }
+}
+
 ResultCode parse_add(TokenIterator *tokeit, Tree **out, DErr **err)
 {
-  Tree *left = NULL;
+  Tree *result = NULL;
 
-  ResultCode resultCode = parse_mult(tokeit, &left, err);
+  ResultCode resultCode = parse_mult(tokeit, &result, err);
   if (resultCode != RESULT_CODE_SUCCESS)
   {
     return derr_add_trace(resultCode, err, "parse_add l: ");
   }
 
-  Token token;
-  bool haveToken = tokeit_peek(tokeit, &token);
-  if (!haveToken)
-  {
-    *out = left;
-    return RESULT_CODE_SUCCESS;
-  }
-
-  MathOperation op;
-  switch (token.tokenType)
-  {
-  case TOKEN_TYPE_PLUS:
-    op = MATH_OP_ADD;
-    break;
-  case TOKEN_TYPE_MINUS:
-    op = MATH_OP_SUBTRACT;
-    break;
-  default:
-    *out = left;
-    return RESULT_CODE_SUCCESS;
-  }
-
-  tokeit_next(tokeit, &token); // consume the math op token
-
-  Tree *right = NULL;
-
-  resultCode = parse_mult(tokeit, &right, err);
+  resultCode = parse_subsequent_adds(tokeit, &result, err);
   if (resultCode != RESULT_CODE_SUCCESS)
   {
-    tree_free(&left);
-    return derr_add_trace(resultCode, err, "parse_add r: ");
+    tree_free(&result);
+    return derr_add_trace(resultCode, err, "parse_add: parse_adds: ");
   }
 
-  resultCode = tree_new(out, err, NODE_TYPE_MATH);
-  if (resultCode != RESULT_CODE_SUCCESS)
-  {
-    tree_free(&left);
-    tree_free(&right);
-    return derr_add_trace(resultCode, err, "parse_add: ");
-  }
-
-  (*out)->nodeData.math.op = op;
-  (*out)->nodeData.math.l = left;
-  (*out)->nodeData.math.r = right;
+  *out = result;
 
   return RESULT_CODE_SUCCESS;
 }
