@@ -1,50 +1,53 @@
-# Dice Algebra Calculator Written in C
+# Dice Algebra Calculator - Written in C
 
-A dice algebra expression parser & calculator written in C. 
+A dice algebra expression lexer, parser, & executor written in C. 
+
 The purpose of writing this application is to have fun trying out C by writing a simple application.
-A dice algebra calculator (including lexing, parsing, and execution of string expressions) was selected as something that is probably complex enough to be interesting yet is simple enough to do in a single afternoon.
+A dice algebra calculator (including lexing, parsing, and execution of string expressions) was selected as something that is probably complex enough to be interesting yet is simple enough to do in a short amount of time.
+
 It's also something that can be extended later if that seems like it would be fun (e.g. this application could run a GUI window in which expressions can be input & a breakdown of the results can be shown, etc.).
 
-## Dice Algebra
+And finally this is a project which can be done in any language, which allows comparing and constrasting (also fun).
 
-This application supports dice expressions including...
+The goal here is to write a program with source code which is as clean as possible (not an easy task without an old hand to ask questions to) and learn about tooling around the language. 
 
-#### Dice rolls
-`xdy` or `xDy` (where both `x` and `y` must be integers) will roll a `y`-sided die `x` times.
+## What is "Dice Algebra?"
 
-For example, `3d6` will roll a 6-sided die three times and sum the results.
+Dice algebra consists of simple mathematical expressions where operands may be a "dice roll."
+
+A simple dice roll takes the format `xdy` (or `xDy`) where both `x` and `y` must be integers. 
+`xdy` means that a `y`-sided die will be rolled `x` times. For example, `3d6` will roll a 6-sided die three times and sum the results.
 
 The leading `x` may be omitted if it is 1. For example, `d4` rolls a 4-sided die one time.
 
-#### ...
 
-...under construction...
+When rolling more than one die it is possible to keep only the lowest `n` rolls or the highest `n` rolls by appending `ln` or `hn`, respectively, to the roll. For example, `2d20h1` will roll two 20-sided dice and keep the highest result.
+
+In addition to rolling dice, it is possible to include integers, addition `+`, subtraction `-`, multiplcation `*`, integer division `/`, and parenthetical expressions `(...)`. For example, `(2d6 + 5) * 10` will roll two 6-sided die, add five to that result, then mutiply that result by ten. 
+
+All integers must be positive (or 0).
 
 ## ANTLR Grammar
 
-The above dice algebra format can be expressed as the following ANTLR grammar.
+The above dice algebra format can be expressed as the following ANTLR 4 grammar. This grammar is more-or-less what this application targets when parsing input.
 
 ```ANTLR
+grammar DiceAlgebra;
+
 // Parser
 
-add: mult (('+' | '-') mult)* ;
-
-mult: atom (('*' | '/') atom)* ;
-
-atom: (roll | '(' add ')') ;
-
+add : mult (('+' | '-') mult)* ;
+mult : atom (('*' | '/') atom)* ;
+atom : (roll | '(' add ')') ;
 roll : (integer | longroll | shortroll) ;
-
 longroll : integer D integer ((H integer | L integer))? ;
-
 shortroll : D integer ; 
-
 integer : NUMBER ;
 
 // Lexer
 
 WHITESPACE : ' ' -> skip ;
-NUMBER     : '-'?[0-9]+ ;
+NUMBER : [0-9]+ ;
 D : 'd' | 'D' ;
 PLUS : '+' ;
 MINUS : '-' ;
@@ -56,13 +59,11 @@ H : 'h' | 'H' ;
 L: 'l' | 'L' ;
 ```
 
-## Building
+## How to Build and Run Locally
 
 This project uses [CMake](https://cmake.org/) with [CMake presets](https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html).
 
 Please note that all presets are configured for use on Linux.
-
-### For Local Development
 
 For local development & debugging, there are CMake presets for both [GCC](https://gcc.gnu.org/) (`debug-gcc`) and [Clang](https://clang.llvm.org/) (`debug-clang`). 
 
@@ -76,3 +77,11 @@ cmake --preset debug-clang
 ```
 
 These two commands create the directories `out/build/debug-gcc` and `out/build/debug-clang`, respectively, containing the generated build systems. 
+
+## Retrospective
+
+To restate: the goal here was to write a program with source code which was as clean as possible and learn about tooling around the language. 
+
+In retrospect I leaned too far away from using libs and too far towards writing my own utilities. IMO this had a negative impact on maintainability in this source code. If I did another C project I would read up more on package management strategies in order to leverage libraries better.
+
+If I were to refactor this I would read up more on memory management and error handling conventions. The current source seems very verbose and those things are a large driver of that (along with not using pre-existing libraries).
