@@ -31,20 +31,20 @@ typedef struct
 
 typedef struct
 {
-  int die;
-  int faces;
-  int high;
-  int low;
+  unsigned int die;
+  unsigned int faces;
+  unsigned int *high;
+  unsigned int *low;
 } LongRollNodeData;
 
 typedef struct
 {
-  int faces;
+  unsigned int faces;
 } ShortRollNodeData;
 
 typedef struct
 {
-  int integer;
+  unsigned int integer;
 } IntegerNodeData;
 
 typedef union

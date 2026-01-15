@@ -21,15 +21,15 @@ static ResultCode str_2_int(char *string, int *out, DErr **err)
   }
 
   errno = 0;
-  long l = strtol(string, &end, 10);
+  unsigned long l = strtoul(string, &end, 10);
 
-  if (l > INT_MAX || (errno == ERANGE && l == LONG_MAX))
+  if (l > UINT_MAX || (errno == ERANGE && l == ULONG_MAX))
   {
     derr_set(err, "Exceeded int max, lexer.c, str_2_int", UNEXPECTED_ERR_MSG);
     return RESULT_CODE_INTERNAL_ERROR;
   }
 
-  if (l < INT_MIN || (errno == ERANGE && l == LONG_MIN))
+  if (l < 0 || (errno == ERANGE && l == 0))
   {
     derr_set(err, "Exceeded int min, lexer.c, str_2_int", UNEXPECTED_ERR_MSG);
     return RESULT_CODE_INTERNAL_ERROR;

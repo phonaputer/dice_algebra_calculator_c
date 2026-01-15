@@ -1,26 +1,92 @@
 
 #include "executor.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
 ResultCode execute_shortroll(Tree *tree, int *result)
 {
+  unsigned int faces = tree->nodeData.shortRoll.faces;
+  if (faces < 1)
+  {
+    *result = 0;
+    return RESULT_CODE_SUCCESS;
+  }
+
+  printf("Rolling d%d...\n", faces);
+
   int randomNumber = rand();
 
-  *result = randomNumber % tree->nodeData.shortRoll.faces + 1;
+  printf("You rolled: %d\n", randomNumber);
+
+  *result = randomNumber % faces + 1;
 
   return RESULT_CODE_SUCCESS;
 }
 
+int compare_integers(const void *a, const void *b)
+{
+  return (*(int *)a - *(int *)b);
+}
+
 ResultCode execute_longroll(Tree *tree, int *result)
 {
-  int sum = 0;
+  unsigned int die = tree->nodeData.longRoll.die;
+  unsigned int faces = tree->nodeData.longRoll.faces;
+  unsigned int *high = tree->nodeData.longRoll.high;
+  unsigned int *low = tree->nodeData.longRoll.low;
 
-  for (int i = 0; i < tree->nodeData.longRoll.die; i++)
+  if (die < 1 || faces < 1)
+  {
+    *result = 0;
+    return RESULT_CODE_SUCCESS;
+  }
+
+  printf("Rolling %dd%d...\n", die, faces);
+
+  int sum = 0;
+  int rolls[die];
+
+  for (unsigned int i = 0; i < die; i++)
   {
     int randomNumber = rand();
 
-    sum += randomNumber % tree->nodeData.longRoll.faces + 1;
+    rolls[i] = randomNumber % faces + 1;
+    sum += rolls[i];
+
+    printf("You rolled: %d\n", rolls[i]);
+  }
+
+  if (high == NULL && low == NULL)
+  {
+    *result = sum;
+    return RESULT_CODE_SUCCESS;
+  }
+
+  size_t arrSize = sizeof(rolls) / sizeof(int);
+  qsort(rolls, arrSize, sizeof(int), compare_integers);
+
+  if (high != NULL)
+  {
+    if (*high < die)
+    {
+      sum = 0;
+      for (unsigned int i = die - *high; i < die; i++)
+      {
+        sum += rolls[i];
+      }
+    }
+  }
+  else if (low != NULL)
+  {
+    if (*low < die)
+    {
+      sum = 0;
+      for (unsigned int i = 0; i < *low; i++)
+      {
+        sum += rolls[i];
+      }
+    }
   }
 
   *result = sum;

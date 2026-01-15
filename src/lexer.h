@@ -21,7 +21,7 @@ typedef enum
 typedef struct
 {
   TokenType tokenType;
-  int integerValue;
+  unsigned int integerValue;
 } Token;
 
 typedef struct

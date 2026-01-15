@@ -51,6 +51,15 @@ void tree_free(Tree **tree)
     theTree->nodeData.math.r = NULL;
   }
 
+  if (theTree->nodeType == NODE_TYPE_LONGROLL)
+  {
+    free(theTree->nodeData.longRoll.high);
+    theTree->nodeData.longRoll.high = NULL;
+
+    free(theTree->nodeData.longRoll.low);
+    theTree->nodeData.longRoll.low = NULL;
+  }
+
   free(theTree);
   *tree = NULL;
 }
@@ -95,7 +104,8 @@ ResultCode consume_d(TokenIterator *tokeit, DErr **err)
   return RESULT_CODE_SUCCESS;
 }
 
-ResultCode parse_integer_raw(TokenIterator *tokeit, int *out, DErr **err)
+ResultCode
+parse_integer_raw(TokenIterator *tokeit, unsigned int *out, DErr **err)
 {
   Token token;
   bool haveToken = tokeit_next(tokeit, &token);
@@ -132,7 +142,7 @@ ResultCode parse_shortroll(TokenIterator *tokeit, Tree **out, DErr **err)
     return derr_add_trace(resultCode, err, "parse_shortroll: ");
   }
 
-  int faces;
+  unsigned int faces;
   resultCode = parse_integer_raw(tokeit, &faces, err);
   if (resultCode != RESULT_CODE_SUCCESS)
   {
@@ -150,9 +160,58 @@ ResultCode parse_shortroll(TokenIterator *tokeit, Tree **out, DErr **err)
   return RESULT_CODE_SUCCESS;
 }
 
+ResultCode parse_l_or_h(
+    TokenIterator *tokeit, unsigned int **h, unsigned int **l, DErr **err
+)
+{
+  Token token;
+  bool haveToken = tokeit_peek(tokeit, &token);
+  if (!haveToken)
+  {
+    return RESULT_CODE_SUCCESS;
+  }
+
+  unsigned int **outP = NULL;
+  switch (token.tokenType)
+  {
+  case TOKEN_TYPE_L:
+    outP = l;
+    break;
+  case TOKEN_TYPE_H:
+    outP = h;
+    break;
+  default:
+    return RESULT_CODE_SUCCESS;
+  }
+
+  tokeit_next(tokeit, &token); // consume L or H token
+
+  unsigned int *resultP = (unsigned int *)malloc(sizeof(unsigned int));
+  if (resultP == NULL)
+  {
+    derr_set(
+        err,
+        "Failed to malloc int in parser.c, parse_l_or_h.",
+        UNEXPECTED_ERR_MSG
+    );
+    return RESULT_CODE_INTERNAL_ERROR;
+  }
+
+  ResultCode resultCode = parse_integer_raw(tokeit, resultP, err);
+  if (resultCode != RESULT_CODE_SUCCESS)
+  {
+    free(resultP);
+    return derr_add_trace(resultCode, err, "parse_l_or_h: parse_integer_raw: ");
+  }
+
+  *outP = resultP;
+
+  return RESULT_CODE_SUCCESS;
+}
+
 ResultCode parse_longroll(TokenIterator *tokeit, Tree **out, DErr **err)
 {
-  int die;
+  unsigned int die;
   ResultCode resultCode = parse_integer_raw(tokeit, &die, err);
   if (resultCode != RESULT_CODE_SUCCESS)
   {
@@ -165,25 +224,37 @@ ResultCode parse_longroll(TokenIterator *tokeit, Tree **out, DErr **err)
     return derr_add_trace(resultCode, err, "parse_longroll: ");
   }
 
-  int faces;
+  unsigned int faces;
   resultCode = parse_integer_raw(tokeit, &faces, err);
   if (resultCode != RESULT_CODE_SUCCESS)
   {
     return derr_add_trace(resultCode, err, "parse_longroll faces: ");
   }
 
-  // FIXME h
-
-  // FIXME l
-
-  resultCode = tree_new(out, err, NODE_TYPE_LONGROLL);
+  unsigned int *high = NULL;
+  unsigned int *low = NULL;
+  resultCode = parse_l_or_h(tokeit, &high, &low, err);
   if (resultCode != RESULT_CODE_SUCCESS)
   {
     return derr_add_trace(resultCode, err, "parse_longroll: ");
   }
 
-  (*out)->nodeData.longRoll.die = die;
-  (*out)->nodeData.longRoll.faces = faces;
+  resultCode = tree_new(out, err, NODE_TYPE_LONGROLL);
+  if (resultCode != RESULT_CODE_SUCCESS)
+  {
+    if (high != NULL) free(high);
+    if (low != NULL) free(low);
+    return resultCode;
+  }
+
+  (*out)->nodeData = (NodeData){
+      .longRoll = (LongRollNodeData){
+          .die = die,
+          .faces = faces,
+          .high = high,
+          .low = low,
+      },
+  };
 
   return RESULT_CODE_SUCCESS;
 }
