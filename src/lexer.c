@@ -408,9 +408,9 @@ _tokenize(TokenArray *ta, OngoingInt *ogint, char input[], DErr **err)
       // whitespace is ignored.
       break;
     default:;
-      char errMsg[100];
-      sprintf(errMsg, "Unexpected character in input: '%c'", inputChar);
-      derr_set(err, errMsg, errMsg);
+      GString *msg = g_string_new("");
+      g_string_printf(msg, "Unexpected character in input: '%c'", inputChar);
+      derr_set_gstring(err, msg);
       return RESULT_CODE_INTERNAL_ERROR;
     }
 

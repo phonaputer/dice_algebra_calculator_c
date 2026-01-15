@@ -1,5 +1,7 @@
 #pragma once
 
+#include <glib.h>
+
 #define UNEXPECTED_ERR_MSG "An unexpected error has occurred."
 
 // Result codes to return from function calls.
@@ -14,9 +16,11 @@ typedef enum
 // This is used for passing useful error messages to be printed for end users.
 typedef struct
 {
-  char *debugMessage;
-  char *endUserMessage;
+  GString *debugMessage;
+  GString *endUserMessage;
 } DErr;
+
+void derr_set_gstring(DErr **err, GString *message);
 
 void derr_set(DErr **err, char *debugMessage, char *endUserMessage);
 

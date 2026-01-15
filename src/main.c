@@ -63,10 +63,10 @@ int main(void)
 
   if (resultCode != RESULT_CODE_SUCCESS)
   {
-    printf("ERROR: %s\n", err->endUserMessage);
+    printf("ERROR: %s\n", err->endUserMessage->str);
 
 #ifdef DEBUG
-    printf("DEBUG message: %s\n", err->debugMessage);
+    printf("DEBUG message: %s\n", err->debugMessage->str);
 #endif
 
     derr_free(&err);
