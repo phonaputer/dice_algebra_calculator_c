@@ -59,7 +59,26 @@ H : 'h' | 'H' ;
 L: 'l' | 'L' ;
 ```
 
-## How to Build and Run Locally
+## How to Run
+
+The dice algebra calculator compiles to a CLI application binary.
+When the CLI is executed, it prompts the user for a dice algebra expression. 
+Then it computes the expression and prints the result.
+
+An example invocation looks like:
+
+```
+> ./dice_algebra_calculator --v
+Please enter a dice algebra expression: 2d6 + 10
+
+Rolling 2d6...
+You rolled: 3
+You rolled: 1
+
+Your result is: 14
+```
+
+## How to Build Locally
 
 This project uses [CMake](https://cmake.org/) with [CMake presets](https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html).
 

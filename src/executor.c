@@ -13,13 +13,13 @@ ResultCode execute_shortroll(Tree *tree, int *result)
     return RESULT_CODE_SUCCESS;
   }
 
-  printf("Rolling d%d...\n", faces);
+  printf("\nRolling d%d...\n", faces);
 
   int randomNumber = rand();
 
-  printf("You rolled: %d\n", randomNumber);
-
   *result = randomNumber % faces + 1;
+
+  printf("You rolled: %d\n", *result);
 
   return RESULT_CODE_SUCCESS;
 }
@@ -42,7 +42,7 @@ ResultCode execute_longroll(Tree *tree, int *result)
     return RESULT_CODE_SUCCESS;
   }
 
-  printf("Rolling %dd%d...\n", die, faces);
+  printf("\nRolling %dd%d...\n", die, faces);
 
   int sum = 0;
   int rolls[die];

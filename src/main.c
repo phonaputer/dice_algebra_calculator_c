@@ -50,7 +50,7 @@ ResultCode run(DErr **err)
     return derr_add_trace(resultCode, err, "execute: ");
   }
 
-  printf("Roll result is: %d\n", result);
+  printf("\nYour result is: %d\n", result);
 
   return RESULT_CODE_SUCCESS;
 }
